@@ -12,7 +12,9 @@ import loginService from './services/login'
 const App = (props) => {
   const [notes, setNotes] = useState([])
   const [showAll, setShowAll] = useState(true)
-  const [errorMessage, setErrorMessage] = useState(null)
+  const [notification, setNotification] = useState(null)
+  const [notificationType, setNotificationType] = useState(null)
+
 
   const [user, setUser] = useState(null)
   const [loginVisible, setLoginVisible] = useState(false)
@@ -28,10 +30,19 @@ const App = (props) => {
       )
       noteService.setToken(user.token)
       setUser(user)
-    } catch (exception) {
-      setErrorMessage('Wrong credentials')
+
+      setNotification(`${user.name} logged in.`)
+      setNotificationType('success')
+
       setTimeout(() => {
-        setErrorMessage(null)
+        setNotification(null)
+        setNotificationType(null)
+      }, 5000);
+    } catch (exception) {
+      setNotification('Wrong credentials')
+      setNotificationType('error')
+      setTimeout(() => {
+        setNotification(null)
       }, 5000)
     }
 
@@ -72,13 +83,49 @@ const App = (props) => {
     </Togglable>
   )
 
-  const addNote = (noteObject) => {
+  const addNote = async (noteObject) => {
     noteFormRef.current.toggleVisibility()
-    noteService
-      .create(noteObject)
-      .then(returnedNote => {
-        setNotes(notes.concat(returnedNote))
-      })
+
+    try{
+      const returnedNote = await noteService
+        .create(noteObject)
+
+      setNotes(notes.concat(returnedNote))
+      setNotification("new note added")
+      setNotificationType('success')
+      setTimeout(() => {
+        setNotification(null)
+        setNotificationType(null)
+      }, 5000)
+
+    } catch(error){
+      console.log("error creating a note", error)
+      setNotification(
+        `error creating note`
+      )
+      setNotificationType('error')
+      setTimeout(() => {
+        setNotification(null)
+        setNotificationType(null)
+      }, 5000)
+    }
+    // noteService
+    //   .create(noteObject)
+    //   .then(returnedNote => {
+    //     setNotes(notes.concat(returnedNote))
+    //   })
+    //   .catch(error=> {
+    //     setNotification(
+    //       `error creating note`
+    //     )
+    //     setNotificationType('error')
+    //     setTimeout(() => {
+    //       setNotification(null)
+    //       setNotificationType(null)
+    //     }, 5000)
+    //   })
+      
+      
   }
 
 
@@ -93,11 +140,13 @@ const App = (props) => {
       })
       .catch(error => {
 
-        setErrorMessage(
+        setNotification(
           `Note '${note.content} was already removed from server`
         )
+        setNotificationType('error')
         setTimeout(() => {
-          setErrorMessage(null)
+          setNotification(null)
+          setNotificationType(null)
         }, 5000)
         setNotes(notes.filter(n => n.id !== id))
       })
@@ -106,9 +155,9 @@ const App = (props) => {
   return (
     <div>
       <h1>My Notes</h1>
-      <Notification message={errorMessage} />
+      <Notification message={notification} type={notificationType}/>
 
-      {!user  && <Togglable buttonLabel='login'>
+      {!user  && <Togglable buttonLabel='log in'>
         <LoginForm
           login={handleLogin}
         />
